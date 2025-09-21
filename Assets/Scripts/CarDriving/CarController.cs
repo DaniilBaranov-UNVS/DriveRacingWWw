@@ -2,246 +2,217 @@ using UnityEngine;
 
 public class CarController : MonoBehaviour
 {
-    [Header("Двигатель и трансмиссия")]
-    public float maxEngineRPM = 7000f;
-    public float minEngineRPM = 800f;
-    public float engineBrake = 2f;
-    public float[] gearRatios = { 3.5f, 2.5f, 1.8f, 1.3f, 1.0f, 0.8f, 0.6f }; // 7 передач
-    public float finalDriveRatio = 3.5f;
-    public float clutchEngagementSpeed = 0.5f;
+    [Header("Настройки движения")]
+    public float maxMotorTorque = 2000f;
+    public float maxSteeringAngle = 35f;
+    public float maxSpeed = 150f;
+
+    [Header("Торможение ")]
+    public float brakeForce = 25000f;
+    public float handbrakeForce = 35000f;
+    public float coastingBrakeForce = 800f;
+    public float downforce = 50f;
+    public float gripFactor = 1.2f;
 
     [Header("Колеса")]
-    public WheelCollider[] driveWheels;
-    public WheelCollider[] steeringWheels;
-    public GameObject[] ddriveWheels;
-    public GameObject[] gdriveWheels;
+    public WheelCollider frontLeftWheel;
+    public WheelCollider frontRightWheel;
+    public WheelCollider rearLeftWheel;
+    public WheelCollider rearRightWheel;
 
-    public float maxSteerAngle = 30f;
-    public float wheelTorque = 1000f;
-    public float brakeTorque = 2000f;
+    [Header("Руль")]
+    public Transform steeringWheel; // Ссылка на руль
+    public float maxSteeringWheelAngle = 180f; // Максимальный угол поворота руля в градусах
 
-    [Header("Физика")]
-    public float downforce = 50f;
-    public float dragCoefficient = 0.3f;
+    [Header("Центр массы")]
+    public Vector3 centerOfMassOffset = new Vector3(0f, -0.5f, 0f);
 
-    // Текущие параметры
-    private float currentRPM;
-    private int currentGear = 1; // 1 передача (нейтралка = 0)
-    private float clutchPosition = 0f; // 0 - выжато, 1 - отпущено
-    private float throttleInput = 0f;
-    private float brakeInput = 0f;
-    private float steeringInput = 0f;
-    private float clutchInput = 0f;
-
-    // Ссылки
     private Rigidbody carRigidbody;
-
-    // Свойства для внешнего доступа
-    public float CurrentRPM => currentRPM;
-    public int CurrentGear => currentGear;
-    public float ClutchPosition => clutchPosition;
-    public float Speed => carRigidbody.linearVelocity.magnitude * 3.6f; // км/ч
+    private float currentMotorTorque;
+    private float currentSteeringAngle;
+    private bool isBraking;
+    private bool isHandbraking;
+    private bool isCoasting;
+    private float currentSpeed;
 
     void Start()
     {
         carRigidbody = GetComponent<Rigidbody>();
-        currentRPM = minEngineRPM;
+        carRigidbody.centerOfMass += centerOfMassOffset;
+
+        // Настройка трения колес для лучшего сцепления
+        SetupWheelFriction();
+    }
+
+    void SetupWheelFriction()
+    {
+        WheelFrictionCurve forwardFriction = new WheelFrictionCurve();
+        forwardFriction.extremumSlip = 0.4f;
+        forwardFriction.extremumValue = 1f;
+        forwardFriction.asymptoteSlip = 0.8f;
+        forwardFriction.asymptoteValue = 0.5f;
+        forwardFriction.stiffness = gripFactor;
+
+        WheelFrictionCurve sidewaysFriction = new WheelFrictionCurve();
+        sidewaysFriction.extremumSlip = 0.2f;
+        sidewaysFriction.extremumValue = 1f;
+        sidewaysFriction.asymptoteSlip = 0.5f;
+        sidewaysFriction.asymptoteValue = 0.75f;
+        sidewaysFriction.stiffness = gripFactor;
+
+        WheelCollider[] wheels = { frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel };
+        foreach (WheelCollider wheel in wheels)
+        {
+            wheel.forwardFriction = forwardFriction;
+            wheel.sidewaysFriction = sidewaysFriction;
+        }
     }
 
     void Update()
     {
-        GetInput();
-        UpdateClutch();
-        UpdateEngineRPM();
-        ApplyForces();
+        // Получаем ввод от игрока
+        float verticalInput = Input.GetAxis("Vertical");
+        float horizontalInput = Input.GetAxis("Horizontal");
+        bool brakeInput = Input.GetKey(KeyCode.S);
+        bool handbrakeInput = Input.GetKey(KeyCode.Space);
+
+        // Определяем, отпущены ли все педали
+        isCoasting = Mathf.Abs(verticalInput) < 0.1f && !brakeInput && !handbrakeInput;
+
+        currentSpeed = carRigidbody.linearVelocity.magnitude * 3.6f;
+
+        HandleMovement(verticalInput, horizontalInput, brakeInput, handbrakeInput);
+        ApplyDownforce();
+        UpdateWheelVisuals();
+        UpdateSteeringWheel(); // Обновляем поворот руля
     }
 
-    void FixedUpdate()
+    void HandleMovement(float throttle, float steering, bool brake, bool handbrake)
     {
-        ApplyWheelForces();
-    }
+        isBraking = brake;
+        isHandbraking = handbrake;
 
-    // Получение ввода с клавиатуры
-    void GetInput()
-    {
-        // Газ и тормоз
-        throttleInput = Input.GetKey(KeyCode.W) ? 1f : 0f;
-        brakeInput = Input.GetKey(KeyCode.S) ? 1f : 0f;
+        // Рулевое управление - уменьшаем угол на высокой скорости
+        float speedFactor = Mathf.Clamp01(1f - (currentSpeed / maxSpeed) * 0.7f);
+        currentSteeringAngle = steering * maxSteeringAngle * speedFactor;
 
-        // Сцепление
-        clutchInput = Input.GetKey(KeyCode.LeftShift) ? 1f : 0f;
+        // Двигатель - ограничиваем мощность на высокой скорости
+        float motorFactor = Mathf.Clamp01(1f - (currentSpeed / maxSpeed));
+        currentMotorTorque = throttle * maxMotorTorque * motorFactor;
 
-        // Рулевое управление
-        steeringInput = Input.GetAxis("Horizontal");
-
-        // Переключение передач
-        HandleGearShifting();
-    }
-
-    // Обновление положения сцепления
-    void UpdateClutch()
-    {
-        if (clutchInput > 0.1f)
-        {
-            // Плавное выжимание сцепления
-            clutchPosition = Mathf.Lerp(clutchPosition, 0f, clutchEngagementSpeed * Time.deltaTime);
-        }
-        else
-        {
-            // Плавное отпускание сцепления
-            clutchPosition = Mathf.Lerp(clutchPosition, 1f, clutchEngagementSpeed * Time.deltaTime);
-        }
-    }
-
-    // Обработка переключения передач
-    void HandleGearShifting()
-    {
-        // Переключение вверх
-        if (Input.GetKeyDown(KeyCode.UpArrow) && currentGear < gearRatios.Length)
-        {
-            TryShiftGear(currentGear + 1);
-        }
-
-        // Переключение вниз
-        if (Input.GetKeyDown(KeyCode.DownArrow) && currentGear > -1)
-        {
-            TryShiftGear(currentGear - 1);
-        }
-
-        // Нейтральная передача
-        if (Input.GetKeyDown(KeyCode.N))
-        {
-            TryShiftGear(0);
-        }
-
-        // Задняя передача
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            TryShiftGear(-1);
-        }
-    }
-
-    // Попытка переключения передачи
-    void TryShiftGear(int targetGear)
-    {
-        // Проверка на валидность передачи
-        if (targetGear < -1 || targetGear > gearRatios.Length)
-            return;
-
-        // Для переключения нужно выжать сцепление
-        if (clutchPosition < 0.3f)
-        {
-            currentGear = targetGear;
-            Debug.Log($"Переключение на передачу: {(targetGear == -1 ? "R" : targetGear == 0 ? "N" : targetGear.ToString())}");
-        }
-        else
-        {
-            Debug.Log("Выжмите сцепление для переключения передачи!");
-        }
-    }
-
-    // Обновление RPM двигателя
-    void UpdateEngineRPM()
-    {
-        if (currentGear == 0) // Нейтральная передача
-        {
-            // Двигатель работает на холостых
-            currentRPM = Mathf.Lerp(currentRPM, minEngineRPM + throttleInput * 2000f, Time.deltaTime);
-            return;
-        }
-
-        // Расчет RPM на основе скорости колес и передачи
-        float wheelRPM = driveWheels[0].rpm;
-        float transmissionRatio = currentGear == -1 ? -gearRatios[0] * finalDriveRatio :
-                                gearRatios[currentGear - 1] * finalDriveRatio;
-
-        float targetRPM = Mathf.Abs(wheelRPM * transmissionRatio);
-
-        // Учет сцепления
-        float engagedRPM = Mathf.Lerp(currentRPM, targetRPM, clutchPosition);
-
-        // Учет газа
-        float throttleRPM = minEngineRPM + (maxEngineRPM - minEngineRPM) * throttleInput;
-
-        // Финальное RPM
-        currentRPM = Mathf.Lerp(engagedRPM, throttleRPM, 1f - clutchPosition);
-        currentRPM = Mathf.Clamp(currentRPM, minEngineRPM, maxEngineRPM);
-    }
-
-    // Применение сил к колесам
-    void ApplyWheelForces()
-    {
-        // Рулевое управление
-        foreach (var wheel in steeringWheels)
-        {
-            wheel.steerAngle = steeringInput * maxSteerAngle;
-        }
-
-        // Если сцепление выжато или нейтральная передача - не передаем крутящий момент
-        if (clutchPosition < 0.1f || currentGear == 0)
-            return;
-
-        // Расчет крутящего момента
-        float torque = CalculateTorque();
-
-        // Применение тормозов
+        // Применяем управление
+        ApplySteering();
+        ApplyMotor();
         ApplyBrakes();
-
-        // Применение крутящего момента
-        foreach (var wheel in driveWheels)
-        {
-            wheel.motorTorque = torque;
-        }
     }
 
-    // Расчет крутящего момента
-    float CalculateTorque()
+    void ApplySteering()
     {
-        if (currentGear == -1) // Задняя передача
-        {
-            return -throttleInput * wheelTorque * 0.5f;
-        }
-
-        // Нормализованные RPM для кривой мощности
-        float normalizedRPM = (currentRPM - minEngineRPM) / (maxEngineRPM - minEngineRPM);
-        float powerCurve = Mathf.Clamp01(1.0f - Mathf.Abs(normalizedRPM - 0.7f) * 2f);
-
-        return throttleInput * wheelTorque * powerCurve * clutchPosition;
+        frontLeftWheel.steerAngle = currentSteeringAngle;
+        frontRightWheel.steerAngle = currentSteeringAngle;
     }
 
-    // Применение тормозов
+    void ApplyMotor()
+    {
+        rearLeftWheel.motorTorque = currentMotorTorque;
+        rearRightWheel.motorTorque = currentMotorTorque;
+    }
+
     void ApplyBrakes()
     {
-        float brakeTorqueTotal = brakeInput * brakeTorque;
+        float frontBrake = 0f;
+        float rearBrake = 0f;
 
-        foreach (var wheel in driveWheels)
+        if (isHandbraking)
         {
-            wheel.brakeTorque = brakeTorqueTotal;
+            // Ручной тормоз (пробел) - блокируем только задние колеса
+            rearBrake = handbrakeForce;
+            frontBrake = brakeForce * 0.3f;
+        }
+        else if (isBraking)
+        {
+            // Основной тормоз (S) - все колеса
+            frontBrake = brakeForce * 0.7f;
+            rearBrake = brakeForce * 0.5f;
+        }
+        else if (isCoasting && currentSpeed > 5f)
+        {
+            // Автоматическое торможение при отпускании всех педалей
+            float coastingFactor = Mathf.Clamp01(currentSpeed / 50f);
+            frontBrake = coastingBrakeForce * 0.6f * coastingFactor;
+            rearBrake = coastingBrakeForce * 0.4f * coastingFactor;
+        }
+        else if (Input.GetAxis("Vertical") < -0.1f && currentSpeed > 5f)
+        {
+            // Задний ход при движении вперед
+            frontBrake = brakeForce * 0.8f;
+            rearBrake = brakeForce * 0.6f;
         }
 
-        foreach (var wheel in steeringWheels)
+        // Применяем тормоза
+        frontLeftWheel.brakeTorque = frontBrake;
+        frontRightWheel.brakeTorque = frontBrake;
+        rearLeftWheel.brakeTorque = rearBrake;
+        rearRightWheel.brakeTorque = rearBrake;
+
+        // Отключаем двигатель при торможении
+        if (isBraking || isHandbraking || isCoasting)
         {
-            wheel.brakeTorque = brakeTorqueTotal;
+            rearLeftWheel.motorTorque = 0f;
+            rearRightWheel.motorTorque = 0f;
         }
     }
 
-    // Применение аэродинамических сил
-    void ApplyForces()
+    void UpdateSteeringWheel()
     {
-        // Прижимная сила
-        float speed = carRigidbody.linearVelocity.magnitude;
-        Vector3 downForce = -transform.up * downforce * speed * speed;
-        carRigidbody.AddForce(downForce);
+        if (steeringWheel != null)
+        {
+            // Вычисляем угол поворота руля на основе угла поворота колес
+            float steeringRatio = maxSteeringWheelAngle / maxSteeringAngle;
+            float steeringWheelAngle = currentSteeringAngle * steeringRatio;
 
-        // Сопротивление воздуха
-        Vector3 dragForce = -carRigidbody.linearVelocity * dragCoefficient * speed;
-        carRigidbody.AddForce(dragForce);
+            // Вращаем руль вокруг его локальной оси Z
+            steeringWheel.localRotation = Quaternion.Euler(0f, 0f, -steeringWheelAngle);
+        }
     }
 
-    // Методы для внешнего управления (для будущего руля)
-    public void SetThrottle(float value) => throttleInput = Mathf.Clamp01(value);
-    public void SetBrake(float value) => brakeInput = Mathf.Clamp01(value);
-    public void SetSteering(float value) => steeringInput = Mathf.Clamp(value, -1f, 1f);
-    public void SetClutch(float value) => clutchInput = Mathf.Clamp01(value);
-    public void ShiftGear(int gear) => TryShiftGear(gear);
+    void UpdateWheelVisuals()
+    {
+        // Обновляем визуальное положение и вращение колес
+        UpdateWheelVisual(frontLeftWheel);
+        UpdateWheelVisual(frontRightWheel);
+        UpdateWheelVisual(rearLeftWheel);
+        UpdateWheelVisual(rearRightWheel);
+    }
+
+    void UpdateWheelVisual(WheelCollider wheelCollider)
+    {
+        if (wheelCollider.transform.childCount == 0) return;
+
+        Transform visualWheel = wheelCollider.transform.GetChild(0);
+
+        wheelCollider.GetWorldPose(out Vector3 position, out Quaternion rotation);
+
+        visualWheel.position = position;
+        visualWheel.rotation = rotation;
+    }
+
+    void ApplyDownforce()
+    {
+        // Прижимная сила для лучшего сцепления с дорогой
+        carRigidbody.AddForce(-transform.up * downforce * carRigidbody.linearVelocity.magnitude);
+    }
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(transform.position + transform.rotation * centerOfMassOffset, 0.1f);
+    }
+
+    void OnGUI()
+    {
+        GUI.Label(new Rect(10, 10, 200, 20), $"Speed: {currentSpeed:F1} km/h");
+        GUI.Label(new Rect(10, 30, 300, 20), $"Steering: {currentSteeringAngle:F1}°");
+        GUI.Label(new Rect(10, 50, 300, 20), $"Controls: W - Gas, S - Brake, Space - Handbrake");
+    }
 }

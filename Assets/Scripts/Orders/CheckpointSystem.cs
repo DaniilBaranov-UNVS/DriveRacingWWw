@@ -1,19 +1,24 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CheckpointSystem : MonoBehaviour
 {
     [Header("Настройки чекпоинтов")]
-    public List<GameObject> checkpoints; 
-    public int currentCheckpointIndex = 0; 
+    public List<GameObject> checkpoints;
+    public int currentCheckpointIndex = 0;
 
     [Header("Настройки машины")]
-    public GameObject car; 
-    public float checkpointRadius = 5f; 
+    public GameObject car;
+    public float checkpointRadius = 5f;
+
+    [Header("Настройки NPC изображений")]
+    public List<Image> npcImages;
 
     void Start()
     {
         InitializeCheckpoints();
+        InitializeNPCImages();
     }
 
     void Update()
@@ -31,16 +36,21 @@ public class CheckpointSystem : MonoBehaviour
 
         for (int i = 0; i < checkpoints.Count; i++)
         {
-            if (i == currentCheckpointIndex)
+            checkpoints[i].SetActive(i == currentCheckpointIndex);
+        }
+    }
+
+    void InitializeNPCImages()
+    {
+        for (int i = 0; i < npcImages.Count; i++)
+        {
+            if (npcImages[i] != null)
             {
-                checkpoints[i].SetActive(true);
-            }
-            else
-            {
-                checkpoints[i].SetActive(false);
+                npcImages[i].gameObject.SetActive(i == 0);
             }
         }
     }
+
     void CheckForCheckpointCompletion()
     {
         if (currentCheckpointIndex >= checkpoints.Count || car == null)
@@ -58,19 +68,36 @@ public class CheckpointSystem : MonoBehaviour
     void CompleteCheckpoint()
     {
         checkpoints[currentCheckpointIndex].SetActive(false);
-
         currentCheckpointIndex++;
 
         if (currentCheckpointIndex < checkpoints.Count)
         {
             checkpoints[currentCheckpointIndex].SetActive(true);
+            UpdateNPCImages();
             Debug.Log("Переход к чекпоинту " + (currentCheckpointIndex + 1));
         }
         else
         {
+            UpdateNPCImages();
             Debug.Log("Все чекпоинты пройдены! Уровень завершен.");
         }
     }
+
+    void UpdateNPCImages()
+    {
+        foreach (Image npcImage in npcImages)
+        {
+            if (npcImage != null)
+            {
+                npcImage.gameObject.SetActive(false);
+            }
+        }
+        if (currentCheckpointIndex < npcImages.Count && npcImages[currentCheckpointIndex] != null)
+        {
+            npcImages[currentCheckpointIndex].gameObject.SetActive(true);
+        }
+    }
+
     void OnDrawGizmosSelected()
     {
         if (checkpoints != null && currentCheckpointIndex < checkpoints.Count &&

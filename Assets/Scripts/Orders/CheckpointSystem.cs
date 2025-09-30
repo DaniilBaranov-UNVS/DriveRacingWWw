@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class CheckpointSystem : MonoBehaviour
@@ -15,10 +16,17 @@ public class CheckpointSystem : MonoBehaviour
     [Header("Настройки NPC изображений")]
     public List<Image> npcImages;
 
+    [Header("Настройки окончания игры")]
+    public GameObject finalText;
+
+    [Header("Настройки меток")]
+    public List<GameObject> marksImages;
     void Start()
     {
         InitializeCheckpoints();
         InitializeNPCImages();
+        InitilizeMarks();
+        finalText.SetActive(false);
     }
 
     void Update()
@@ -51,6 +59,18 @@ public class CheckpointSystem : MonoBehaviour
         }
     }
 
+    void InitilizeMarks() 
+    {
+        for (int i = 0; i < marksImages.Count; i++) 
+        {
+            if (marksImages[i] != null)
+            {
+                marksImages[i].gameObject.SetActive(i == 0);
+            }
+        }
+    }
+       
+
     void CheckForCheckpointCompletion()
     {
         if (currentCheckpointIndex >= checkpoints.Count || car == null)
@@ -74,12 +94,16 @@ public class CheckpointSystem : MonoBehaviour
         {
             checkpoints[currentCheckpointIndex].SetActive(true);
             UpdateNPCImages();
+            UpdateMarks();
             Debug.Log("Переход к чекпоинту " + (currentCheckpointIndex + 1));
         }
         else
         {
             UpdateNPCImages();
+            UpdateMarks();
             Debug.Log("Все чекпоинты пройдены! Уровень завершен.");
+            finalText.SetActive(true);
+            
         }
     }
 
@@ -95,6 +119,21 @@ public class CheckpointSystem : MonoBehaviour
         if (currentCheckpointIndex < npcImages.Count && npcImages[currentCheckpointIndex] != null)
         {
             npcImages[currentCheckpointIndex].gameObject.SetActive(true);
+        }
+    }
+
+    void UpdateMarks()
+    {
+        foreach (GameObject marks in marksImages)
+        {
+            if (marks != null)
+            { 
+                marks.gameObject.SetActive(false);
+            }
+        }
+        if (currentCheckpointIndex < marksImages.Count && marksImages[currentCheckpointIndex] != null)
+        {
+            marksImages[currentCheckpointIndex].gameObject.SetActive(true);
         }
     }
 

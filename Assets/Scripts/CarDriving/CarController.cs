@@ -65,7 +65,7 @@ public class CarController : MonoBehaviour
     private string currentGearText = "N";
 
     // Клавиши управления
-    private KeyCode clutchKey = KeyCode.LeftShift;
+    public KeyCode clutchKey = KeyCode.LeftShift;
     private KeyCode shiftUpKey = KeyCode.E;
     private KeyCode shiftDownKey = KeyCode.Q;
 

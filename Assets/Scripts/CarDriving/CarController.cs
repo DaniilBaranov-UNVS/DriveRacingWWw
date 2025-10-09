@@ -165,6 +165,8 @@ public class CarController : MonoBehaviour
         shiftInProgress = true;
         shiftTimer = 0f;
 
+        PlayGearShiftSound();
+
         // Определяем целевую скорость для новой передачи
         if (newGear == -1)
         {
@@ -472,7 +474,14 @@ public class CarController : MonoBehaviour
     {
         carRigidbody.AddForce(-transform.up * downforce * carRigidbody.linearVelocity.magnitude);
     }
-
+    void PlayGearShiftSound()
+    {
+        CarSoundController soundController = GetComponent<CarSoundController>();
+        if (soundController != null)
+        {
+            soundController.ManualGearShift();
+        }
+    }
     void OnGUI()
     {
         GUI.Label(new Rect(10, 10, 200, 20), $"Speed: {currentSpeed:F1} km/h");

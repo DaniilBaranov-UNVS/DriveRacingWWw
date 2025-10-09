@@ -54,7 +54,7 @@ public class CarControllerSample : MonoBehaviour
 
     // Переменные для КПП
     private float clutchInput = 0f;
-    private float engineRPM = 800f;
+    public float engineRPM = 800f;
     private bool isClutchEngaged = true;
     private float wheelRPM;
     private bool shiftInProgress = false;
@@ -229,6 +229,7 @@ public class CarControllerSample : MonoBehaviour
         shiftInProgress = true;
         shiftTimer = 0f;
 
+        PlayGearShiftSound();
         // Определяем целевую скорость для новой передачи
         if (newGear == -1)
         {
@@ -540,6 +541,14 @@ public class CarControllerSample : MonoBehaviour
     void ApplyDownforce()
     {
         carRigidbody.AddForce(-transform.up * downforce * carRigidbody.linearVelocity.magnitude);
+    }
+    void PlayGearShiftSound()
+    {
+        CarSoundController soundController = GetComponent<CarSoundController>();
+        if (soundController != null)
+        {
+            soundController.ManualGearShift();
+        }
     }
 
     void OnGUI()

@@ -51,7 +51,7 @@ public class CarController : MonoBehaviour
 
     // Переменные для КПП
     private float clutchInput = 0f;
-    private float engineRPM = 800f;
+    public float engineRPM = 800f;
     private bool isClutchEngaged = true;
     private float wheelRPM;
     private bool shiftInProgress = false;
@@ -165,7 +165,7 @@ public class CarController : MonoBehaviour
         shiftInProgress = true;
         shiftTimer = 0f;
 
-        PlayGearShiftSound();
+       
 
         // Определяем целевую скорость для новой передачи
         if (newGear == -1)
@@ -474,35 +474,27 @@ public class CarController : MonoBehaviour
     {
         carRigidbody.AddForce(-transform.up * downforce * carRigidbody.linearVelocity.magnitude);
     }
-    void PlayGearShiftSound()
-    {
-        CarSoundController soundController = GetComponent<CarSoundController>();
-        if (soundController != null)
-        {
-            soundController.ManualGearShift();
-        }
-    }
-    void OnGUI()
-    {
-        GUI.Label(new Rect(10, 10, 200, 20), $"Speed: {currentSpeed:F1} km/h");
-        GUI.Label(new Rect(10, 30, 200, 20), $"RPM: {currentRPM:F0}");
-        GUI.Label(new Rect(10, 50, 200, 20), $"Gear: {currentGearText}");
-        GUI.Label(new Rect(10, 70, 300, 20), $"Clutch: {(isClutchEngaged ? "Engaged" : "Disengaged")}");
+    //void OnGUI()
+    //{
+    //    GUI.Label(new Rect(10, 10, 200, 20), $"Speed: {currentSpeed:F1} km/h");
+    //    GUI.Label(new Rect(10, 30, 200, 20), $"RPM: {currentRPM:F0}");
+    //    GUI.Label(new Rect(10, 50, 200, 20), $"Gear: {currentGearText}");
+    //    GUI.Label(new Rect(10, 70, 300, 20), $"Clutch: {(isClutchEngaged ? "Engaged" : "Disengaged")}");
 
-        string efficiency = $"RPM Efficiency: {GetRpmEfficiency():P0}";
-        GUI.Label(new Rect(10, 90, 300, 20), efficiency);
+    //    string efficiency = $"RPM Efficiency: {GetRpmEfficiency():P0}";
+    //    GUI.Label(new Rect(10, 90, 300, 20), efficiency);
 
-        string maxSpeedInfo = "Max Speed: ";
-        if (currentGear == -1) maxSpeedInfo += $"{reverseMaxSpeed} km/h (R)";
-        else if (currentGear == 0) maxSpeedInfo += "0 km/h (N)";
-        else maxSpeedInfo += $"{gearMaxSpeeds[currentGear - 1]} km/h (Gear {currentGear})";
+    //    string maxSpeedInfo = "Max Speed: ";
+    //    if (currentGear == -1) maxSpeedInfo += $"{reverseMaxSpeed} km/h (R)";
+    //    else if (currentGear == 0) maxSpeedInfo += "0 km/h (N)";
+    //    else maxSpeedInfo += $"{gearMaxSpeeds[currentGear - 1]} km/h (Gear {currentGear})";
 
-        if (shouldLimitSpeedAfterShift)
-        {
-            maxSpeedInfo += " [LIMITING]";
-        }
+    //    if (shouldLimitSpeedAfterShift)
+    //    {
+    //        maxSpeedInfo += " [LIMITING]";
+    //    }
 
-        GUI.Label(new Rect(10, 110, 400, 20), maxSpeedInfo);
-        GUI.Label(new Rect(10, 130, 400, 60), $"Controls: W - Gas, S - Brake, Space - Handbrake\nShift - Clutch, E - Shift Up, Q - Shift Down\nFree gear shifting - physics will limit movement");
-    }
+    //    GUI.Label(new Rect(10, 110, 400, 20), maxSpeedInfo);
+    //    GUI.Label(new Rect(10, 130, 400, 60), $"Controls: W - Gas, S - Brake, Space - Handbrake\nShift - Clutch, E - Shift Up, Q - Shift Down\nFree gear shifting - physics will limit movement");
+    //}
 }

@@ -1,90 +1,147 @@
 using UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(CarController))]
 public class CarSoundController : MonoBehaviour
 {
     [Header("Audio Sources")]
-    public AudioSource engineStartSource;
-    public AudioSource engineIdleSource;
-    public AudioSource gearShiftSource;
+    public AudioSource engineStartSource;   // –ó–≤—É–∫ –∑–∞–ø—É—Å–∫–∞ –¥–≤–∏–≥–∞—Ç–µ–ª—è
+    public AudioSource engineIdleSource;    // Idle loop (—Ä–∞–±–æ—Ç–∞ –Ω–∞ –º–µ—Å—Ç–µ)
+    public AudioSource engineDriveSource;   // Rev loop (—Ä–∞–∑–≥–æ–Ω)
 
     [Header("Audio Clips")]
     public AudioClip engineStartClip;
     public AudioClip engineIdleClip;
-    public AudioClip gearShiftClip;
+    public AudioClip engineDriveClip;
 
-    [Header("Settings")]
-    public float startToIdleDelay = 0.5f;
+    [Header("–ù–∞—Å—Ç—Ä–æ–π–∫–∏ –≥—Ä–æ–º–∫–æ—Å—Ç–∏ –∏ —Ç–æ–Ω–∞–ª—å–Ω–æ—Å—Ç–∏")]
+    [Range(0.1f, 1f)] public float idleVolume = 0.6f;
+    [Range(0.5f, 1.5f)] public float driveMinVolume = 0.3f;
+    [Range(0.5f, 1.5f)] public float driveMaxVolume = 1.0f;
+    [Range(0.8f, 1.5f)] public float driveMinPitch = 1.0f;
+    [Range(1.0f, 3.0f)] public float driveMaxPitch = 2.0f;
+    [Range(0.5f, 5f)] public float smoothSpeed = 3f;
 
-    private CarControllerSample carController;
+    [Header("–£—Å–ª–æ–≤–∏—è –¥–ª—è –ø–µ—Ä–µ—Ö–æ–¥–∞ –∏–∑ idle –≤ rev")]
+    [Tooltip("–ü–æ—Ä–æ–≥ —Å–∫–æ—Ä–æ—Å—Ç–∏, –ø—Ä–∏ –∫–æ—Ç–æ—Ä–æ–º –∑–≤—É–∫ –ø–µ—Ä–µ—Ö–æ–¥–∏—Ç —Å idle –Ω–∞ drive")]
+    public float speedThresholdKmH = 3f;
+    [Tooltip("RPM, –ø–æ—Å–ª–µ –∫–æ—Ç–æ—Ä—ã—Ö –∑–≤—É–∫ –Ω–∞—á–∏–Ω–∞–µ—Ç –∫—Ä–æ—Å—Å—Ñ–µ–π–¥–∏—Ç—å—Å—è –Ω–∞ rev")]
+    public float rpmThreshold = 1200f;
+    [Tooltip("–ú–∏–Ω–∏–º–∞–ª—å–Ω–æ–µ –∑–Ω–∞—á–µ–Ω–∏–µ –≥–∞–∑–∞, –ø—Ä–∏ –∫–æ—Ç–æ—Ä–æ–º –Ω–∞—á–∏–Ω–∞–µ—Ç—Å—è –∑–≤—É–∫ drive")]
+    public float throttleThreshold = 0.15f;
+
+    private CarControllerSample carControllerSample;
+    private Rigidbody rb;
     private int lastGear = 0;
-
+    private float drivePitchSmooth;
+    private float driveVolumeSmooth;
+    private float idleVolumeSmooth;
 
     void Start()
     {
-        engineIdleSource.Stop();
-        engineIdleSource.clip = null;
+        carControllerSample = GetComponent<CarControllerSample>();
+        rb = GetComponent<Rigidbody>();
 
-        carController = GetComponent<CarControllerSample>();
-        if (carController == null)
+        if (carControllerSample == null)
         {
-            Debug.LogError("CarControllerSample ÌÂ Ì‡È‰ÂÌ Ì‡ ˝ÚÓÏ Ó·˙ÂÍÚÂ!");
+            Debug.LogError("CarController –Ω–µ –Ω–∞–π–¥–µ–Ω –Ω–∞ –æ–±—ä–µ–∫—Ç–µ!");
+            enabled = false;
+            return;
         }
 
-        StartCoroutine(PlayEngineSounds());
+        SetupAudioSource(engineIdleSource, engineIdleClip, true);
+        SetupAudioSource(engineDriveSource, engineDriveClip, true);
+
+        if (engineStartClip != null && engineStartSource != null)
+            StartCoroutine(PlayStartSequence());
+        else
+            StartEngineSounds();
     }
 
-    void Update()
+    void SetupAudioSource(AudioSource source, AudioClip clip, bool loop)
     {
-        if (carController != null)
-        {
-            int currentGear = carController.currentGear;
-
-            if (currentGear != lastGear && lastGear != 0)
-            {
-                PlayGearShiftSound();
-            }
-
-            lastGear = currentGear;
-        }
+        if (source == null) return;
+        source.clip = clip;
+        source.loop = loop;
+        source.playOnAwake = false;
+        source.volume = 0f;
     }
 
-    IEnumerator PlayEngineSounds()
+    IEnumerator PlayStartSequence()
     {
         engineStartSource.clip = engineStartClip;
         engineStartSource.Play();
 
-        // ∆‰ÂÏ ‰Ó ÏÓÏÂÌÚ‡, ÍÓ„‰‡ ÌÛÊÌÓ Á‡ÔÛÒÚËÚ¸ idle (‰Ó ÓÍÓÌ˜‡ÌËˇ ÒÚ‡ÚÓ‚Ó„Ó Á‚ÛÍ‡)
-        float waitTime = engineStartClip.length - startToIdleDelay;
-        yield return new WaitForSeconds(waitTime);
+        yield return new WaitForSeconds(engineStartClip.length * 0.8f);
 
-        // «‡ÔÛÒÍ‡ÂÏ idle Á‚ÛÍ, ÔÓÍ‡ Â˘Â Ë„‡ÂÚ ÒÚ‡ÚÓ‚˚È
-        engineIdleSource.clip = engineIdleClip;
-        engineIdleSource.loop = true;
-        engineIdleSource.Play();
+        StartEngineSounds();
 
-        // ∆‰ÂÏ ÓÍÓÌ˜‡ÌËÂ ÒÚ‡ÚÓ‚Ó„Ó Á‚ÛÍ‡
-        yield return new WaitForSeconds(startToIdleDelay);
-
-        // ŒÒÚ‡Ì‡‚ÎË‚‡ÂÏ ÒÚ‡ÚÓ‚˚È Á‚ÛÍ (ÚÂÔÂ¸ Ë„‡ÂÚ ÚÓÎ¸ÍÓ idle)
+        yield return new WaitForSeconds(engineStartClip.length * 0.2f);
         engineStartSource.Stop();
     }
 
-    public void PlayGearShiftSound()
+    void StartEngineSounds()
     {
-        if (gearShiftSource != null && gearShiftClip != null)
+        if (engineIdleSource != null && !engineIdleSource.isPlaying)
         {
-            gearShiftSource.clip = gearShiftClip;
-            gearShiftSource.Play();
+            engineIdleSource.volume = idleVolume;
+            engineIdleSource.Play();
         }
-        else
+
+        if (engineDriveSource != null && !engineDriveSource.isPlaying)
         {
-            Debug.LogWarning("»ÒÚÓ˜ÌËÍ Á‚ÛÍ‡ ËÎË ÍÎËÔ ÔÂÂÍÎ˛˜ÂÌËˇ ÔÂÂ‰‡˜Ë ÌÂ Ì‡ÁÌ‡˜ÂÌ˚!");
+            engineDriveSource.volume = 0f;
+            engineDriveSource.Play();
         }
     }
 
-    public void ManualGearShift()
+    void Update()
     {
-        PlayGearShiftSound();
+        if (carControllerSample == null) return;
+        UpdateEngineSound();
+
+        // –ü—Ä–æ–≤–µ—Ä–∫–∞ —Å–º–µ–Ω—ã –ø–µ—Ä–µ–¥–∞—á–∏
+        int currentGear = carControllerSample.currentGear;
+        
+        lastGear = currentGear;
+    }
+
+    void UpdateEngineSound()
+    {
+        if (engineIdleSource == null || engineDriveSource == null) return;
+
+        float rpm = carControllerSample.engineRPM;
+        float rpmNormalized = Mathf.InverseLerp(carControllerSample.rpmIdle, carControllerSample.rpmRedline, rpm);
+        float speedKmH = rb.linearVelocity.magnitude * 3.6f;
+        float throttle = Input.GetAxis("Vertical");
+
+        bool isRevving = (speedKmH > speedThresholdKmH) ||
+                         (rpm > rpmThreshold) ||
+                         (Mathf.Abs(throttle) > throttleThreshold);
+        // Pitch –∏ volume –¥–ª—è drive
+        float targetPitch = Mathf.Lerp(driveMinPitch, driveMaxPitch, rpmNormalized);
+        float targetVolume = Mathf.Lerp(driveMinVolume, driveMaxVolume, rpmNormalized);
+
+        // –°–≥–ª–∞–∂–∏–≤–∞–Ω–∏–µ
+        drivePitchSmooth = Mathf.Lerp(drivePitchSmooth, targetPitch, Time.deltaTime * smoothSpeed);
+        driveVolumeSmooth = Mathf.Lerp(driveVolumeSmooth, targetVolume, Time.deltaTime * smoothSpeed);
+
+        if (isRevving)
+        {
+            // –ü–ª–∞–≤–Ω—ã–π –ø–µ—Ä–µ—Ö–æ–¥ –æ—Ç idle –∫ drive
+            idleVolumeSmooth = Mathf.Lerp(idleVolumeSmooth, 0f, Time.deltaTime * smoothSpeed);
+            driveVolumeSmooth = Mathf.Lerp(driveVolumeSmooth, targetVolume, Time.deltaTime * smoothSpeed);
+        }
+        else
+        {
+            // –ü–ª–∞–≤–Ω—ã–π –ø–µ—Ä–µ—Ö–æ–¥ –æ–±—Ä–∞—Ç–Ω–æ –Ω–∞ idle
+            idleVolumeSmooth = Mathf.Lerp(idleVolumeSmooth, idleVolume, Time.deltaTime * smoothSpeed);
+            driveVolumeSmooth = Mathf.Lerp(driveVolumeSmooth, 0f, Time.deltaTime * smoothSpeed);
+        }
+
+        // –ü—Ä–∏–º–µ–Ω—è–µ–º –ø–∞—Ä–∞–º–µ—Ç—Ä—ã
+        engineDriveSource.pitch = drivePitchSmooth;
+        engineDriveSource.volume = driveVolumeSmooth;
+        engineIdleSource.volume = idleVolumeSmooth;
     }
 }

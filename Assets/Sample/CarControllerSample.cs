@@ -67,13 +67,11 @@ public class CarControllerSample : MonoBehaviour
     private float currentRPM;
     private string currentGearText = "N";
 
-    // Переменные для отслеживания состояния переключения передач
-    private bool previousShiftUp = false;
-    private bool previousShiftDown = false;
-
     // Переменные для управления шестеркой передач
     private bool[] previousShifterStates = new bool[7];
-    private int[] shifterToGearMap = { -1, 1, 2, 3, 4, 5, 6 }; // Shifter1-R, Shifter2-1, Shifter3-2, Shifter4-3, Shifter5-4, Shifter6-5, Shifter7-6
+
+    // ПРАВИЛЬНОЕ СООТВЕТСТВИЕ: shifter1 = задняя, shifter2-7 = 1-6 передачи
+    private int[] shifterToGearMap = { -1, 1, 2, 3, 4, 5, 6 };
 
     void Start()
     {
@@ -133,13 +131,9 @@ public class CarControllerSample : MonoBehaviour
         float clutchInput = inputControllerReader.Clutch;
         float handbrakeInput = inputControllerReader.Handbrake;
 
-        //// Получаем состояние лепестков переключения передач
-        //bool shiftUpInput = inputControllerReader.RightShift; // Правый лепесток - повышение
-        //bool shiftDownInput = inputControllerReader.LeftShift; // Левый лепесток - понижение
-
         // Получаем состояние шифтера (механической КПП)
         bool[] shifterInputs = {
-            inputControllerReader.Shifter1, // R
+            inputControllerReader.Shifter1, // R (задняя)
             inputControllerReader.Shifter2, // 1
             inputControllerReader.Shifter3, // 2
             inputControllerReader.Shifter4, // 3
@@ -173,54 +167,43 @@ public class CarControllerSample : MonoBehaviour
         clutchInput = clutch;
         isClutchEngaged = clutchInput < 0.1f;
 
-        // Проверяем, активна ли какая-либо передача на шифтере
-        bool anyShifterActive = false;
-        int activeShifterIndex = -1;
-
+        // Проверяем изменения состояния шифтера
         for (int i = 0; i < shifterInputs.Length; i++)
         {
-            if (shifterInputs[i] && !previousShifterStates[i] && !shiftInProgress)
+            // Если кнопка нажата сейчас, но не была нажата ранее
+            if (shifterInputs[i] && !previousShifterStates[i])
             {
-                activeShifterIndex = i;
-                anyShifterActive = true;
-                break;
+                // Переключаем передачу только если сцепление выжато
+                if (clutchInput > 0.5f && !shiftInProgress)
+                {
+                    int newGear = shifterToGearMap[i];
+                    if (newGear != currentGear)
+                    {
+                        StartCoroutine(ShiftGear(newGear));
+                        break; // Выходим после первого найденного нажатия
+                    }
+                }
             }
-            if (shifterInputs[i])
-            {
-                anyShifterActive = true;
-            }
+
+            // Обновляем предыдущее состояние
             previousShifterStates[i] = shifterInputs[i];
         }
 
-        // Если нажата новая передача на шифтере
-        if (activeShifterIndex != -1)
+        // Автоматическое включение нейтрали при отпускании всех передач
+        bool anyShifterActive = false;
+        for (int i = 0; i < shifterInputs.Length; i++)
         {
-            int newGear = shifterToGearMap[activeShifterIndex];
-            if (newGear != currentGear)
+            if (shifterInputs[i])
             {
-                StartCoroutine(ShiftGear(newGear));
+                anyShifterActive = true;
+                break;
             }
-        }
-        // Если ни одна передача не активна - включаем нейтраль
-        else if (!anyShifterActive && currentGear != 0 && !shiftInProgress)
-        {
-            StartCoroutine(ShiftGear(0));
         }
 
-        // Переключение передач лепестками (последовательная КПП) только при выжатом сцеплении
-        if ((clutchInput > 0.9f) && !shiftInProgress)
+        // Если ни одна передача не активна и у нас не нейтраль - включаем нейтраль
+        if (!anyShifterActive && currentGear != 0 && !shiftInProgress && clutchInput > 0.5f)
         {
-            // Проверяем нажатие лепестков с защитой от повторного срабатывания
-            if (!previousShiftUp && currentGear < 6)
-            {
-                int newGear = currentGear == 0 ? 1 : currentGear + 1;
-                StartCoroutine(ShiftGear(newGear));
-            }
-            else if (!previousShiftDown && currentGear > -1)
-            {
-                int newGear = currentGear == 0 ? -1 : currentGear - 1;
-                StartCoroutine(ShiftGear(newGear));
-            }
+            StartCoroutine(ShiftGear(0));
         }
     }
 
@@ -229,7 +212,6 @@ public class CarControllerSample : MonoBehaviour
         shiftInProgress = true;
         shiftTimer = 0f;
 
-        PlayGearShiftSound();
         // Определяем целевую скорость для новой передачи
         if (newGear == -1)
         {
@@ -353,7 +335,7 @@ public class CarControllerSample : MonoBehaviour
             motorFactor = 0f;
             clampedThrottle = 0f;
         }
-        // Ограничение скорости в зависимости от передачи
+
         else if (currentGear == -1) // Задняя передача
         {
             clampedThrottle = Mathf.Clamp(throttle, -1f, 0f); // Только отрицательные значения для заднего хода
@@ -542,14 +524,6 @@ public class CarControllerSample : MonoBehaviour
     {
         carRigidbody.AddForce(-transform.up * downforce * carRigidbody.linearVelocity.magnitude);
     }
-    void PlayGearShiftSound()
-    {
-        CarSoundController soundController = GetComponent<CarSoundController>();
-        if (soundController != null)
-        {
-            soundController.ManualGearShift();
-        }
-    }
 
     void OnGUI()
     {
@@ -583,7 +557,6 @@ public class CarControllerSample : MonoBehaviour
             $"Gas/Brake/Clutch - Pedals\n" +
             $"Steering - Wheel\n" +
             $"Handbrake - Button\n" +
-            $"Shift Up - Right Paddle | Shift Down - Left Paddle\n" +
             $"Manual Shifter - 1(R) 2(1) 3(2) 4(3) 5(4) 6(5) 7(6)");
     }
 }

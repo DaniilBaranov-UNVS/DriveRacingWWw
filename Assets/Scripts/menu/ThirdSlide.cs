@@ -8,7 +8,7 @@ public class ThirdSlide : MonoBehaviour
     public GameObject nextTaskPanel;  
 
     [Header("Ссылка на контроллер машины")]
-    public CarController carController;
+    public CarControllerSample carController;
 
     [Header("Настройки")]
     private float delayBeforeNextPanel = 0f;
@@ -20,7 +20,7 @@ public class ThirdSlide : MonoBehaviour
         
         if (carController == null)
         {
-            carController = FindObjectOfType<CarController>();
+            carController = FindObjectOfType<CarControllerSample>();
         }
         if (firstTaskPanel != null)
             firstTaskPanel.SetActive(true);
@@ -39,7 +39,7 @@ public class ThirdSlide : MonoBehaviour
 
     void CheckFirstTaskCompletion()
     {
-        bool clutchPressed = Input.GetKey(carController.clutchKey) || Input.GetKey(KeyCode.LeftShift);
+        bool clutchPressed = carController.clutchInput > 0.5f || Input.GetKey(KeyCode.LeftShift);
         bool firstGearEngaged = carController.currentGear == 1;
 
         if (clutchPressed && firstGearEngaged)

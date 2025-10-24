@@ -1,7 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using LogitechG29.Sample.Input;
-
+using UnityEngine.UI;
+using TMPro;
 public class CarControllerSample : MonoBehaviour
 {
     [Header("Input Controller")]
@@ -44,6 +45,9 @@ public class CarControllerSample : MonoBehaviour
     [Header("Центр массы")]
     public Vector3 centerOfMassOffset = new Vector3(0f, -0.5f, 0f);
 
+    [Header("UI Элементы")]
+    public TextMeshProUGUI speedText;
+
     private Rigidbody carRigidbody;
     private float currentMotorTorque;
     private float currentSteeringAngle;
@@ -53,7 +57,7 @@ public class CarControllerSample : MonoBehaviour
     private float currentSpeed;
 
     // Переменные для КПП
-    private float clutchInput = 0f;
+    public float clutchInput = 0f;
     public float engineRPM = 800f;
     private bool isClutchEngaged = true;
     private float wheelRPM;
@@ -70,8 +74,8 @@ public class CarControllerSample : MonoBehaviour
     // Переменные для управления шестеркой передач
     private bool[] previousShifterStates = new bool[7];
 
-    // ПРАВИЛЬНОЕ СООТВЕТСТВИЕ: shifter1 = задняя, shifter2-7 = 1-6 передачи
-    private int[] shifterToGearMap = { -1, 1, 2, 3, 4, 5, 6 };
+   
+    private int[] shifterToGearMap = {1, 2, 3, 4, 5, 6, -1};
 
     void Start()
     {
@@ -123,7 +127,10 @@ public class CarControllerSample : MonoBehaviour
             Debug.LogError("InputControllerReader не назначен!");
             return;
         }
-
+        if (speedText != null)
+        {
+            speedText.text = $"Speed: {currentSpeed:F1}";
+        }
         // Получаем ввод от контроллера
         float throttleInput = inputControllerReader.Throttle;
         float brakeInput = inputControllerReader.Brake;
@@ -133,13 +140,13 @@ public class CarControllerSample : MonoBehaviour
 
         // Получаем состояние шифтера (механической КПП)
         bool[] shifterInputs = {
-            inputControllerReader.Shifter1, // R (задняя)
-            inputControllerReader.Shifter2, // 1
-            inputControllerReader.Shifter3, // 2
-            inputControllerReader.Shifter4, // 3
-            inputControllerReader.Shifter5, // 4
-            inputControllerReader.Shifter6, // 5
-            inputControllerReader.Shifter7  // 6
+            inputControllerReader.Shifter1, 
+            inputControllerReader.Shifter2, 
+            inputControllerReader.Shifter3, 
+            inputControllerReader.Shifter4, 
+            inputControllerReader.Shifter5, 
+            inputControllerReader.Shifter6, 
+            inputControllerReader.Shifter7  
         };
 
         // Объединяем газ и тормоз в один вертикальный ввод (газ положительный, тормоз отрицательный)
@@ -338,8 +345,9 @@ public class CarControllerSample : MonoBehaviour
 
         else if (currentGear == -1) // Задняя передача
         {
-            clampedThrottle = Mathf.Clamp(throttle, -1f, 0f); // Только отрицательные значения для заднего хода
-            if (currentSpeed > reverseMaxSpeed && clampedThrottle < -0.1f)
+            float reverseThrottle = -throttle; // Только отрицательные значения для заднего хода
+            reverseThrottle = Mathf.Clamp(reverseThrottle, 0f, 1f);
+            if (currentSpeed > reverseMaxSpeed && Mathf.Abs(reverseThrottle)>0.1f)
             {
                 motorFactor = 0f;
             }
@@ -348,6 +356,9 @@ public class CarControllerSample : MonoBehaviour
                 float speedRatio = currentSpeed / reverseMaxSpeed;
                 motorFactor = Mathf.Clamp01(1f - speedRatio * 0.8f);
             }
+            currentMotorTorque = reverseThrottle*maxMotorTorque*motorFactor*gearRatios[0]*finalDriveRatio*0.7f;
+            rearLeftWheel.brakeTorque = 0f;
+            rearRightWheel.brakeTorque = 0f;
         }
         else if (currentGear > 0) // Передние передачи
         {

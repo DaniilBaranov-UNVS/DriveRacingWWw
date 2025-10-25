@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using Bhaptics.SDK2;
 public class ThirdSlide : MonoBehaviour
 {
     [Header("Панели обучения")]

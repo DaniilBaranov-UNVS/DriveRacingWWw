@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Bhaptics.SDK2;
 
 public class CheckpointSystem : MonoBehaviour
 {
@@ -88,6 +89,8 @@ public class CheckpointSystem : MonoBehaviour
     void CompleteCheckpoint()
     {
         checkpoints[currentCheckpointIndex].SetActive(false);
+        BhapticsLibrary.Play(eventId: BhapticsEvent.PROCESSCOMPLETEORDER, startMillis: 0, intensity: 1, duration: 1, angleX: 0, offsetY: 0);
+        Debug.Log("Test Taktilki PROCESSCOMPLETEORDER");
         currentCheckpointIndex++;
 
         if (currentCheckpointIndex < checkpoints.Count)
@@ -119,6 +122,8 @@ public class CheckpointSystem : MonoBehaviour
         if (currentCheckpointIndex < npcImages.Count && npcImages[currentCheckpointIndex] != null)
         {
             npcImages[currentCheckpointIndex].gameObject.SetActive(true);
+            BhapticsLibrary.Play(eventId: BhapticsEvent.MESSAGE, startMillis: 0, intensity: 1, duration: 1, angleX: 0, offsetY: 0);
+            Debug.Log("Test Taktilki message");
         }
     }
 

@@ -342,12 +342,10 @@ public class CarControllerSample : MonoBehaviour
             motorFactor = 0f;
             clampedThrottle = 0f;
         }
-
         else if (currentGear == -1) // Задняя передача
         {
-            float reverseThrottle = -throttle; // Только отрицательные значения для заднего хода
-            reverseThrottle = Mathf.Clamp(reverseThrottle, 0f, 1f);
-            if (currentSpeed > reverseMaxSpeed && Mathf.Abs(reverseThrottle)>0.1f)
+            clampedThrottle = Mathf.Clamp01(throttle);
+            if (currentSpeed > reverseMaxSpeed && clampedThrottle > 0.1f)
             {
                 motorFactor = 0f;
             }
@@ -356,10 +354,26 @@ public class CarControllerSample : MonoBehaviour
                 float speedRatio = currentSpeed / reverseMaxSpeed;
                 motorFactor = Mathf.Clamp01(1f - speedRatio * 0.8f);
             }
-            currentMotorTorque = reverseThrottle*maxMotorTorque*motorFactor*gearRatios[0]*finalDriveRatio*0.7f;
-            rearLeftWheel.brakeTorque = 0f;
-            rearRightWheel.brakeTorque = 0f;
+
+            clampedThrottle *= -1f;
         }
+        //else if (currentGear == -1) // Задняя передача
+        //{
+        //    float reverseThrottle = -throttle; // Только отрицательные значения для заднего хода
+        //    reverseThrottle = Mathf.Clamp(reverseThrottle, 0f, 1f);
+        //    if (currentSpeed > reverseMaxSpeed && Mathf.Abs(reverseThrottle)>0.1f)
+        //    {
+        //        motorFactor = 0f;
+        //    }
+        //    else
+        //    {
+        //        float speedRatio = currentSpeed / reverseMaxSpeed;
+        //        motorFactor = Mathf.Clamp01(1f - speedRatio * 0.8f);
+        //    }
+        //    currentMotorTorque = reverseThrottle*maxMotorTorque*motorFactor*gearRatios[0]*finalDriveRatio*0.7f;
+        //    rearLeftWheel.brakeTorque = 0f;
+        //    rearRightWheel.brakeTorque = 0f;
+        //}
         else if (currentGear > 0) // Передние передачи
         {
             clampedThrottle = Mathf.Clamp01(throttle);

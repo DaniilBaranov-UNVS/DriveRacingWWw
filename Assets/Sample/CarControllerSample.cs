@@ -290,7 +290,7 @@ public class CarControllerSample : MonoBehaviour
         else currentGearText = currentGear.ToString();
     }
 
-    void HandleMovement(float throttle, float steering, bool brake, bool handbrake)
+    void HandleMovement(float throttle, float steering, bool brake, bool handbrake) 
     {
         isBraking = brake;
         isHandbraking = handbrake;
@@ -357,23 +357,6 @@ public class CarControllerSample : MonoBehaviour
 
             clampedThrottle *= -1f;
         }
-        //else if (currentGear == -1) // Задняя передача
-        //{
-        //    float reverseThrottle = -throttle; // Только отрицательные значения для заднего хода
-        //    reverseThrottle = Mathf.Clamp(reverseThrottle, 0f, 1f);
-        //    if (currentSpeed > reverseMaxSpeed && Mathf.Abs(reverseThrottle)>0.1f)
-        //    {
-        //        motorFactor = 0f;
-        //    }
-        //    else
-        //    {
-        //        float speedRatio = currentSpeed / reverseMaxSpeed;
-        //        motorFactor = Mathf.Clamp01(1f - speedRatio * 0.8f);
-        //    }
-        //    currentMotorTorque = reverseThrottle*maxMotorTorque*motorFactor*gearRatios[0]*finalDriveRatio*0.7f;
-        //    rearLeftWheel.brakeTorque = 0f;
-        //    rearRightWheel.brakeTorque = 0f;
-        //}
         else if (currentGear > 0) // Передние передачи
         {
             clampedThrottle = Mathf.Clamp01(throttle);
@@ -388,7 +371,7 @@ public class CarControllerSample : MonoBehaviour
                 motorFactor = Mathf.Clamp01(1f - speedRatio * 0.8f);
             }
 
-            // ФИЗИЧЕСКОЕ ОГРАНИЧЕНИЕ: на высокой передаче с низкой скоростью - низкая мощность
+            // на высокой передаче с низкой скоростью - низкая мощность
             if (currentSpeed < 10f && currentGear > 3)
             {
                 motorFactor *= 0.1f;

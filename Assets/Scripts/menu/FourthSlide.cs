@@ -7,7 +7,7 @@ public class FourthSlide : MonoBehaviour
     public GameObject thisTaskPanel;
     public GameObject nextTaskPanel;
 
-    public CarControllerSample carController;
+    public CarController carController;
     private float delay = 0f;
     private bool taskComplited = false;
 
@@ -15,7 +15,7 @@ public class FourthSlide : MonoBehaviour
     {
         if (carController == null)
         {
-            carController = FindFirstObjectByType<CarControllerSample>();
+            carController = FindFirstObjectByType<CarController>();
         }
         if (thisTaskPanel != null)
             thisTaskPanel.SetActive(true);
@@ -33,7 +33,7 @@ public class FourthSlide : MonoBehaviour
 
     void CheckTaskCompletion()
     {
-        bool gasPressed = carController.inputControllerReader.Throttle>0.1f;
+        bool gasPressed = Input.GetKey(KeyCode.W);
         if (gasPressed) {
             TaskComplited();
         }

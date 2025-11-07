@@ -75,32 +75,28 @@ public class CarTelemetryHandler : MonoBehaviour
 
     private void UpdatePlatformMotion()
     {
-        // --- ��������� ---
+
         Vector3 velocity = rigidbody.linearVelocity;
         Vector3 acceleration = (velocity - lastVelocity) / Time.fixedDeltaTime;
 
         float forwardAccel = Vector3.Dot(acceleration, vehicleTransform.forward);
         float lateralAccel = Vector3.Dot(acceleration, vehicleTransform.right);
 
-        float targetPitch = -forwardAccel * accelPitchFactor; // ������������� � ��� ���������� ������ �����
+        float targetPitch = -forwardAccel * accelPitchFactor;
         float targetRoll = -lateralAccel * cornerRollFactor;
 
-        // --- ������ ������������ �������� ---
         impactPitch = Mathf.Lerp(impactPitch, 0f, Time.deltaTime * impactDamping);
         impactRoll = Mathf.Lerp(impactRoll, 0f, Time.deltaTime * impactDamping);
 
         targetPitch += impactPitch;
         targetRoll += impactRoll;
 
-        // --- ����������� ---
         targetPitch = Mathf.Clamp(targetPitch, -maxPitch, maxPitch);
         targetRoll = Mathf.Clamp(targetRoll, -maxRoll, maxRoll);
 
-        // --- ����������� ---
         currentPitch = Mathf.Lerp(currentPitch, targetPitch, Time.deltaTime * smoothSpeed);
         currentRoll = Mathf.Lerp(currentRoll, targetRoll, Time.deltaTime * smoothSpeed);
 
-        // --- �������� �� ��������� ---
         var euler = new Vector3(currentPitch, 0f, currentRoll);
         _telemetryDataData.Angles = euler;
         _telemetryDataData.Velocity = velocity;
@@ -112,7 +108,6 @@ public class CarTelemetryHandler : MonoBehaviour
     {
         float impactForce = collision.relativeVelocity.magnitude;
 
-        // �������� ������� � pitch/roll
         impactPitch = -impactForce * impactFactor;
         impactRoll = UnityEngine.Random.Range(-impactForce, impactForce) * impactFactor * 0.5f;
     }

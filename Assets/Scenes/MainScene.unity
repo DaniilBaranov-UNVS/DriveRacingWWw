@@ -2157,7 +2157,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1829922410192357324, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1248798723}
   m_SourcePrefab: {fileID: 100100000, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
 --- !u!4 &157299667 stripped
 Transform:
@@ -9536,7 +9539,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: 3ee61dab8335e3d42ac97dba52db0738, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.885
+      value: -0.796
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: 3ee61dab8335e3d42ac97dba52db0738, type: 3}
       propertyPath: m_LocalPosition.z
@@ -14170,7 +14173,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 42020104}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ef3455e79ea02742962a7c318340184, type: 3}
   m_Name: 
@@ -14202,6 +14205,7 @@ MonoBehaviour:
   steeringWheel: {fileID: 687823071}
   maxSteeringWheelAngle: 180
   centerOfMassOffset: {x: 0, y: -0.5, z: 0}
+  clutchInput: 0
   engineRPM: 800
   clutchKey: 304
 --- !u!54 &1108129578
@@ -14259,7 +14263,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 42020104}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9bb2250f7b98584b8e49b0365225096, type: 3}
   m_Name: 
@@ -16816,6 +16820,33 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: f98d0f97a920741499853e1e86a88ced, type: 3}
   m_PrefabInstance: {fileID: 1248567736}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1248798722 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1829922410192357324, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
+  m_PrefabInstance: {fileID: 157299666}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &1248798723
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1248798722}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1001 &1252431568
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -8,7 +8,7 @@ public class ThirdSlide : MonoBehaviour
     public GameObject nextTaskPanel;  
 
     [Header("Ссылка на контроллер машины")]
-    public CarControllerSample carController;
+    public CarController carController;
 
     [Header("Настройки")]
     private float delayBeforeNextPanel = 0f;
@@ -20,7 +20,7 @@ public class ThirdSlide : MonoBehaviour
         
         if (carController == null)
         {
-            carController = FindObjectOfType<CarControllerSample>();
+            carController = FindObjectOfType<CarController>();
         }
         if (firstTaskPanel != null)
             firstTaskPanel.SetActive(true);

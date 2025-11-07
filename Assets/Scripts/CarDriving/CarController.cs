@@ -50,7 +50,7 @@ public class CarController : MonoBehaviour
     private float currentSpeed;
 
     // Переменные для КПП
-    private float clutchInput = 0f;
+    public float clutchInput = 0f;
     public float engineRPM = 800f;
     private bool isClutchEngaged = true;
     private float wheelRPM;

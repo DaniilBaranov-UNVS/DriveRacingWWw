@@ -7,11 +7,9 @@ public class VolumeSlider : MonoBehaviour
 
     private void Start()
     {
-        // Загружаем сохраненное значение
         float savedVolume = PlayerPrefs.GetFloat("MasterVolume", 0.7f);
         volumeSlider.value = savedVolume;
 
-        // Подписываемся на изменение слайдера
         volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
     }
 

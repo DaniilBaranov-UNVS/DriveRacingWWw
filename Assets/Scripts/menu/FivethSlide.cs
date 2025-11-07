@@ -4,7 +4,7 @@ public class FivethSlide : MonoBehaviour
 {
     [Header("Панели обучения")]
     public GameObject thisTaskPanel;
-    public CarControllerSample carController;
+    public CarController carController;
     
     private float delay = 0f;
     private bool taskComplited = false;
@@ -12,7 +12,7 @@ public class FivethSlide : MonoBehaviour
     {
         if(carController == null)
         {
-            carController = FindFirstObjectByType<CarControllerSample>();
+            carController = FindFirstObjectByType<CarController>();
         }
         if (thisTaskPanel != null)
             thisTaskPanel.SetActive(true);
@@ -26,7 +26,7 @@ public class FivethSlide : MonoBehaviour
     }
     void CheckTaskCompletion()
     {
-        bool gasPressed = carController.inputControllerReader.Brake > 0.1f;
+        bool gasPressed = Input.GetKey(KeyCode.S);
         if (gasPressed)
         {
             TaskComplited();

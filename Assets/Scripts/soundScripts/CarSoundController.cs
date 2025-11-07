@@ -30,7 +30,7 @@ public class CarSoundController : MonoBehaviour
     [Tooltip("Минимальное значение газа, при котором начинается звук drive")]
     public float throttleThreshold = 0.15f;
 
-    private CarControllerSample carControllerSample;
+    private CarController carControllerSample;
     private Rigidbody rb;
     private int lastGear = 0;
     private float drivePitchSmooth;
@@ -39,7 +39,7 @@ public class CarSoundController : MonoBehaviour
 
     void Start()
     {
-        carControllerSample = GetComponent<CarControllerSample>();
+        carControllerSample = GetComponent<CarController>();
         rb = GetComponent<Rigidbody>();
 
         if (carControllerSample == null)

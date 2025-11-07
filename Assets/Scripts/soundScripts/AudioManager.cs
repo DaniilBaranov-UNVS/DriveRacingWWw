@@ -8,7 +8,6 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioMixer audioMixer;
     private const string MASTER_VOLUME_PARAM = "MasterVolume";
 
-    // Для логарифмической кривой (человеческое восприятие громкости)
     private const float MIN_DB = -80f;
     private const float MAX_DB = 0f;
 
@@ -31,7 +30,7 @@ public class AudioManager : MonoBehaviour
         // volumePercent от 0 до 1
         float volumeDB = MIN_DB;
 
-        if (volumePercent > 0.001f) // Защита от log(0)
+        if (volumePercent > 0.001f) 
         {
             // Логарифмическое преобразование для естественного восприятия
             volumeDB = Mathf.Log10(volumePercent) * 20f;

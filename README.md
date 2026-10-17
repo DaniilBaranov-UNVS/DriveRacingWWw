@@ -1,7 +1,7 @@
 # WwDriveRacing
 
-**VR-симулятор городского вождения, где машину чувствуешь телом: тактильный жилет bHaptics и подвижная платформа 2DOF.**
-Вы садитесь за руль в шлеме, заводите машину, выжимаете сцепление и учитесь трогаться. Дальше — маршрут по заказам: каждый житель города ждёт вас в своей точке. Разгон и торможение наклоняют кресло, повороты кренят его, а удар в бампер приходит в спину и грудь ударом жилета. Картинка в шлеме — только половина симулятора, вторая половина работает с железом.
+**A VR city driving simulator where you feel the car with your body: a bHaptics haptic vest and a 2DOF motion platform.**
+You get behind the wheel in a headset, start the engine, press the clutch and learn to pull away. Then comes a route of delivery orders: every city resident is waiting for you at their own point. Acceleration and braking tilt the seat, turns make it roll, and a hit to the bumper reaches your back and chest through the vest. The picture in the headset is only half of the simulator; the other half works with hardware.
 
 <p align="left">
   <img alt="Unity" src="https://img.shields.io/badge/Unity-6000.0.40f1-000?logo=unity">
@@ -15,152 +15,152 @@
 </p>
 
 <p align="center">
-  <img src="Preview/Gameplay1.png" alt="Вид из кабины на городскую улицу" width="900">
+  <img src="Preview/Gameplay1.png" alt="Cockpit view of a city street" width="900">
 </p>
 
-<p align="center"><i>Всё происходит из-за руля. Номер включённой передачи выведен на панель прямо перед глазами.</i></p>
+<p align="center"><i>Everything happens from behind the wheel. The current gear number is shown on the dashboard right in front of your eyes.</i></p>
 
 <p align="center">
-  <img src="Preview/Gameplay2.png" alt="Точка заказа отмечена столбом света" width="900">
+  <img src="Preview/Gameplay2.png" alt="The order point is marked with a pillar of light" width="900">
 </p>
 
-<p align="center"><i>Точка текущего заказа видна издалека: столб света и метка над ним, развёрнутая к водителю.</i></p>
+<p align="center"><i>The current order point is visible from afar: a pillar of light with a marker above it, turned toward the driver.</i></p>
 
 ---
 
-## Что чувствует игрок
+## What the Player Feels
 
-| 🦺 bHaptics SDK2 | 🎢 Платформа 2DOF |
+| 🦺 bHaptics SDK2 | 🎢 2DOF Platform |
 |---|---|
-| Жилет отрабатывает удары, выполненные заказы, новые сообщения и нажатия в меню. Сторона удара считается по точке контакта, поэтому лобовое и удар сзади ощущаются по-разному. | Кресло повторяет поведение машины: разгон отдаёт назад, торможение вперёд, поворот даёт крен. Столкновение добавляет отдельный толчок, который затухает сам. |
-| Событий в игре: **7** | Частота телеметрии: **50 Гц** |
+| The vest plays hits, completed orders, new messages and menu presses. The hit side is calculated from the contact point, so a head-on hit and a hit from behind feel different. | The seat follows the car: acceleration pushes it back, braking forward, a turn makes it roll. A collision adds a separate jolt that fades out by itself. |
+| In-game events: **7** | Telemetry rate: **50 Hz** |
 
-Обе технологии подключены не как демо-заглушка, а к живым событиям физики: `Rigidbody` машины и её столкновения — единственный источник данных и для жилета, и для платформы.
+Both technologies are not plugged in as demo stubs but connected to live physics events: the car's `Rigidbody` and its collisions are the only data source for both the vest and the platform.
 
 ---
 
-## Тактильный жилет bHaptics
+## bHaptics Haptic Vest
 
-bHaptics SDK2 — не отдельный слой поверх игры, а часть игровой логики: вызовы стоят прямо в обработчике столкновений, в системе заказов и в панелях обучения.
+bHaptics SDK2 is not a separate layer on top of the game but part of the game logic: the calls sit right in the collision handler, the order system and the tutorial panels.
 
-| Событие | Когда срабатывает |
+| Event | When it fires |
 |---|---|
-| `frontcrash` | удар в переднюю часть машины |
-| `backcrash` | удар в заднюю часть |
-| `processcompleteorder` | заказ выполнен |
-| `message` | появился новый заказчик |
-| `righthand`, `butterfly` | взаимодействие с панелями обучения |
+| `frontcrash` | hit to the front of the car |
+| `backcrash` | hit to the rear |
+| `processcompleteorder` | order completed |
+| `message` | a new customer appeared |
+| `righthand`, `butterfly` | interaction with tutorial panels |
 
-Сторона удара считается переводом точки контакта в локальные координаты машины: положительная ось Z означает лобовое, отрицательная — удар сзади. Поэтому жилет бьёт именно туда, куда пришёлся удар, а не проигрывает один общий паттерн на любое касание.
+The hit side is found by converting the contact point into the car's local coordinates: positive Z means a head-on hit, negative Z means a hit from behind. So the vest hits exactly where the impact happened instead of playing one generic pattern for any touch.
 
-Паттерны хранятся в проекте и генерируются в константы `BhapticsEvent` через редактор SDK, так что имена событий в коде и в bHaptics Player всегда совпадают.
+Patterns are stored in the project and generated into `BhapticsEvent` constants through the SDK editor, so event names in the code and in bHaptics Player always match.
 
-## Подвижная платформа 2DOF
+## 2DOF Motion Platform
 
-Платформа получает телеметрию напрямую из физики машины, без промежуточного игрового слоя.
+The platform gets telemetry directly from the car physics, without an intermediate game layer.
 
-- **Наклон** берётся из продольного ускорения: разгон отклоняет кресло назад, торможение вперёд.
-- **Крен** берётся из поперечного ускорения, то есть из реальной боковой перегрузки в повороте.
-- **Удар** добавляет отдельный импульс наклона и случайный крен по силе столкновения, после чего плавно затухает сам.
-- **Ограничения** держат оба угла в пределах 10° и сглаживают их, чтобы кресло не дёргалось на мелкой тряске.
+- **Pitch** comes from longitudinal acceleration: accelerating tilts the seat back, braking tilts it forward.
+- **Roll** comes from lateral acceleration, i.e. the real side G-force in a turn.
+- **Impact** adds a separate pitch impulse and a random roll based on the collision force, then smoothly fades out by itself.
+- **Limits** keep both angles within 10° and smooth them so the seat does not jerk on small bumps.
 
-Готовые углы и вектор скорости складываются в массив из шести чисел и каждые 20 миллисекунд, то есть 50 раз в секунду, пишутся в общую память Windows под именем `2DOFMemoryDataGrabber`. Отправка идёт в отдельном потоке и не влияет на кадры. Приложение платформы читает эту память само, так что игре не нужны ни драйверы, ни сеть.
+The final angles and the velocity vector are packed into an array of six numbers and written every 20 milliseconds, i.e. 50 times per second, to Windows shared memory named `2DOFMemoryDataGrabber`. Sending runs in a separate thread and does not affect frame rate. The platform app reads this memory by itself, so the game needs no drivers and no network.
 
 ---
 
-## Заказчики
+## Customers
 
 | | | | |
 |---|---|---|---|
 | <img src="Assets/images/first.png" width="180"> | <img src="Assets/images/second.png" width="180"> | <img src="Assets/images/third.png" width="180"> | <img src="Assets/images/fourth.png" width="180"> |
-| Заказ 1 | Заказ 2 | Заказ 3 | Заказ 4 |
+| Order 1 | Order 2 | Order 3 | Order 4 |
 
-Каждый заказчик появляется на панели в кабине вместе со своей меткой на карте города. Выполнили — сменился и портрет, и метка, и цель маршрута.
+Each customer appears on the cockpit panel together with their marker on the city map. Once the order is done, the portrait, the marker and the route target all change.
 
 ---
 
-## Как устроена поездка
+## How a Ride Works
 
-**Обучение.** Игрок проходит цепочку панелей, и каждая ждёт не кнопку «далее», а само действие:
+**Tutorial.** The player goes through a chain of panels, and each one waits for the actual action rather than a "next" button:
 
-1. Приветствие и первый экран, дальше — по кнопке.
-2. Выжать сцепление и включить первую передачу.
-3. Дать газ.
-4. Нажать тормоз.
+1. Welcome and the first screen, then continue with a button.
+2. Press the clutch and shift into first gear.
+3. Press the gas.
+4. Press the brake.
 
-Пока действие не выполнено, следующая панель не показывается, поэтому за руль нельзя сесть, не разобравшись с коробкой.
+Until the action is done, the next panel does not appear, so you cannot start driving without figuring out the gearbox.
 
-**Заказы.** `CheckpointSystem` ведёт список из четырёх точек. Активна всегда одна: как только машина въезжает в радиус `2.8 м`, точка гаснет, срабатывает тактильный отклик выполненного заказа, включаются следующий портрет и следующая метка. После четвёртой точки на экран выходит финальный текст.
+**Orders.** `CheckpointSystem` keeps a list of four points. Only one is active at a time: as soon as the car enters the `2.8 m` radius, the point turns off, the order-completed haptic feedback plays, and the next portrait and marker turn on. After the fourth point, the final text appears on screen.
 
-**Метки.** Указатели над городом всегда развёрнуты к камере и увеличиваются с расстоянием, чтобы дальняя цель оставалась читаемой из кабины. Для этого используется билборд с масштабированием по дистанции, отдельно от самой логики заказов.
+**Markers.** The pointers above the city always face the camera and grow with distance so that a far target stays readable from the cockpit. This uses a billboard with distance-based scaling, separate from the order logic itself.
 
-## Коробка передач
+## Gearbox
 
-Машина не поедет «сама» — движение целиком завязано на сцепление и передачу.
+The car will not drive "by itself": movement fully depends on the clutch and the gear.
 
-- Передача переключается только при выжатом сцеплении, между нейтралью, задней и пятью передними.
-- Обороты двигателя считаются от оборотов задних колёс через передаточное число и главную пару. На нейтрали и при выжатом сцеплении они падают к холостым.
-- У каждой передачи свой потолок скорости. Переключились вниз на слишком высокой скорости — включается принудительное торможение, газ на это время отключается.
-- Тяга зависит от оборотов: ниже 1500 и выше 5500 крутящий момент срезается, оптимальная зона от 1500 до 4500.
-- Тронуться на четвёртой не выйдет: на высокой передаче при низкой скорости мощность падает до 10–30 %.
-- Руль тем острее, чем медленнее едет машина. На скорости угол поворота колёс уменьшается.
+- Gears shift only with the clutch pressed, between neutral, reverse and five forward gears.
+- Engine RPM is calculated from the rear wheel RPM through the gear ratio and the final drive. In neutral and with the clutch pressed, it drops to idle.
+- Each gear has its own speed cap. Shift down at too high a speed and forced braking kicks in, with the gas disabled for that time.
+- Traction depends on RPM: below 1500 and above 5500 the torque is cut, the optimal range is 1500 to 4500.
+- You cannot pull away in fourth: in a high gear at low speed, power drops to 10–30%.
+- Steering is sharper the slower the car goes. At speed, the wheel steering angle decreases.
 
-| Передача | R | 1 | 2 | 3 | 4 | 5 |
+| Gear | R | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|---|
-| Потолок, км/ч | 8 | 10 | 20 | 30 | 40 | 50 |
+| Speed cap, km/h | 8 | 10 | 20 | 30 | 40 | 50 |
 
-Модель руля в кабине поворачивается вслед за колёсами до 180°, колёса визуально синхронизированы с `WheelCollider`, а прижимная сила растёт со скоростью.
+The steering wheel model in the cockpit turns with the wheels up to 180°, the wheels are visually synced with `WheelCollider`, and downforce grows with speed.
 
-## Управление
+## Controls
 
-| Клавиатура | Действие |
+| Keyboard | Action |
 |---|---|
-| `W` / `S` | газ и тормоз |
-| `A` / `D` | руль |
-| `Space` | ручник |
-| `Left Shift` | сцепление |
-| `E` / `Q` | передача вверх и вниз |
+| `W` / `S` | gas and brake |
+| `A` / `D` | steering |
+| `Space` | handbrake |
+| `Left Shift` | clutch |
+| `E` / `Q` | gear up and down |
 
-Отдельная ветка управления сделана под **Logitech G29**: руль, три педали и семипозиционный шифтер читаются через Input System, передача включается физическим рычагом, а отпускание рычага возвращает нейтраль. В этой версии контроллера шесть передач с потолком до 180 км/ч. В сцене компонент лежит рядом с клавиатурным и по умолчанию выключен — включается вместо него.
+A separate control branch is made for the **Logitech G29**: the wheel, three pedals and the seven-position shifter are read through the Input System, the gear is engaged with the physical lever, and releasing the lever returns to neutral. This controller version has six gears with a speed cap of up to 180 km/h. In the scene the component sits next to the keyboard one and is disabled by default; enable it instead of the keyboard one.
 
-## Звук
+## Sound
 
-Двигатель собран из трёх слоёв: запуск, холостой ход и разгон. Слои кроссфейдятся по оборотам, скорости и положению газа, тональность разгона тянется за оборотами. Общая громкость идёт через `AudioMixer`, ползунок в меню пишет её в `PlayerPrefs` и переживает перезапуск, а сам менеджер звука не выгружается между сценами.
+The engine sound is built from three layers: start, idle and acceleration. The layers crossfade based on RPM, speed and throttle position, and the acceleration pitch follows the RPM. Master volume goes through an `AudioMixer`; the menu slider saves it to `PlayerPrefs` so it survives a restart, and the sound manager itself is not unloaded between scenes.
 
-## Технологии
+## Tech Stack
 
-**bHaptics SDK2** (тактильный жилет) · **2DOF** (подвижная платформа, memory-mapped file) · **Logitech G29 SDK** (руль, педали, шифтер)
+**bHaptics SDK2** (haptic vest) · **2DOF** (motion platform, memory-mapped file) · **Logitech G29 SDK** (wheel, pedals, shifter)
 
 Unity 6 (URP 17.2) · OpenXR + XR Interaction Toolkit 3.2 · Input System · TextMesh Pro
 
-## Структура проекта
+## Project Structure
 
 ```
 Assets/
 ├─ Scripts/
-│  ├─ CarDriving/     физика машины, КПП, сцепление, руль
-│  ├─ Orders/         точки заказов, портреты, метки-билборды
-│  ├─ Tactilka/       тактильные события столкновений
-│  ├─ menu/           обучающие слайды и переходы между сценами
-│  └─ soundScripts/   микшер, громкость, звук двигателя
+│  ├─ CarDriving/     car physics, gearbox, clutch, steering
+│  ├─ Orders/         order points, portraits, billboard markers
+│  ├─ Tactilka/       haptic collision events
+│  ├─ menu/           tutorial slides and scene transitions
+│  └─ soundScripts/   mixer, volume, engine sound
 ├─ Plugins/
-│  ├─ LogitechG29/    руль, педали и шифтер через Input System
-│  └─ 2DOF/           отправка телеметрии на подвижную платформу
-├─ Sample/            вариант управления с руля + телеметрия платформы
-├─ Bhaptics/          SDK2 тактильного жилета
-├─ City/ Enviroments/ город, террейн, скайбокс, вода, эффекты
-└─ AS_Cars/           модели машин игрока и трафика
+│  ├─ LogitechG29/    wheel, pedals and shifter via Input System
+│  └─ 2DOF/           sending telemetry to the motion platform
+├─ Sample/            wheel control variant + platform telemetry
+├─ Bhaptics/          haptic vest SDK2
+├─ City/ Enviroments/ city, terrain, skybox, water, effects
+└─ AS_Cars/           player and traffic car models
 ```
 
-Сцены: `GameMenu` (запуск, громкость, выход) → `MainScene` (обучение, город и заказы).
+Scenes: `GameMenu` (start, volume, exit) → `MainScene` (tutorial, city and orders).
 
-## Запуск
+## Getting Started
 
-1. Unity **6000.0.40f1**, платформа сборки — Windows Standalone.
-2. Шлем с поддержкой OpenXR подключён до входа в Play Mode.
-3. **bHaptics.** Нужен запущенный bHaptics Player с загруженными паттернами и подключённый жилет. Без него игра работает, отклики просто не приходят.
-4. Для руля Logitech G29 включите компонент управления с руля на машине вместо клавиатурного.
-5. **2DOF.** Платформа подключается сама, как только её приложение начинает читать общую память `2DOFMemoryDataGrabber`. Отдельной настройки в игре не требуется.
+1. Unity **6000.0.40f1**, build platform: Windows Standalone.
+2. An OpenXR-compatible headset is connected before entering Play Mode.
+3. **bHaptics.** You need bHaptics Player running with the patterns loaded and the vest connected. Without it the game still works, there is just no haptic feedback.
+4. For the Logitech G29 wheel, enable the wheel control component on the car instead of the keyboard one.
+5. **2DOF.** The platform connects by itself as soon as its app starts reading the `2DOFMemoryDataGrabber` shared memory. No extra setup is needed in the game.
 
 ---
 
